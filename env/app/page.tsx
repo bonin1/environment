@@ -1,8 +1,9 @@
+import Environment from './components/home/environment';
 
 export default function Home() {
   return (
-    <div>
-      <h1>Home</h1>
-    </div>
+    <main>
+      <Environment />
+    </main>
   );
 }
