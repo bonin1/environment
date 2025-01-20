@@ -1,15 +1,11 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import TWEEN from '@tweenjs/tween.js';
-import MonitorWebsite from './MonitorWebsite';
 
 const Environment = () => {
     const mountRef = useRef<HTMLDivElement>(null);
-    const [showMonitorContent, setShowMonitorContent] = useState(false);
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const textureRef = useRef<THREE.CanvasTexture | null>(null);
 
     useEffect(() => {
         if (!mountRef.current) return;
@@ -215,40 +211,8 @@ const Environment = () => {
         const originalCameraPosition = new THREE.Vector3(0, 2, 5);
         const originalControlsTarget = new THREE.Vector3(0, 1, 0);
         
-        const monitorViewPosition = new THREE.Vector3(0, 1.4, -0.15);
+        const monitorViewPosition = new THREE.Vector3(0, 1.4, 0);  
         const monitorViewTarget = new THREE.Vector3(0, 1.4, -0.4);
-
-        const updateCanvasContent = () => {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-            
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-    
-            ctx.fillStyle = '#000033';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 48px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Welcome to My Monitor', canvas.width/2, 100);
-            
-            ctx.font = '32px Arial';
-            ctx.fillText('This is a custom website', canvas.width/2, 200);
-            ctx.fillText('inside the 3D monitor', canvas.width/2, 250);
-    
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(50, 300, 924, 200);
-            
-            // Add some colored elements
-            const time = Date.now() * 0.001;
-            ctx.fillStyle = `hsl(${(time * 50) % 360}, 70%, 50%)`;
-            ctx.fillRect(70, 320, 200, 160);
-            ctx.fillStyle = `hsl(${((time * 50) + 120) % 360}, 70%, 50%)`;
-            ctx.fillRect(290, 320, 200, 160);
-            ctx.fillStyle = `hsl(${((time * 50) + 240) % 360}, 70%, 50%)`;
-            ctx.fillRect(510, 320, 200, 160);
-        };
 
         const createPCSetup = () => {
             const pcGroup = new THREE.Group();
@@ -329,6 +293,7 @@ const Environment = () => {
             const createInternalComponents = () => {
                 const components = new THREE.Group();
         
+                // GPU
                 const gpuGeometry = new THREE.BoxGeometry(0.05, 0.15, 0.3);
                 const gpuMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 });
                 const gpu = new THREE.Mesh(gpuGeometry, gpuMaterial);
@@ -361,7 +326,7 @@ const Environment = () => {
         
             tower.position.set(0.6, 0.4, -0.4);
         
-            const screenGeometry = new THREE.BoxGeometry(1.2, 0.7, 0.05);
+            const screenGeometry = new THREE.BoxGeometry(0.9, 0.5, 0.02);
             const screenMaterial = new THREE.MeshStandardMaterial({ 
                 color: 0x000000,
                 roughness: 0.2
@@ -369,62 +334,32 @@ const Environment = () => {
             const screen = new THREE.Mesh(screenGeometry, screenMaterial);
             screen.userData.clickable = true; 
             
-            const standGeometry = new THREE.Group();
+            const standGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3);
             const standMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
-
-            const poleGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.3);
-            const pole = new THREE.Mesh(poleGeometry, standMaterial);
-            pole.position.y = 0.15;
-            standGeometry.add(pole);
-
-            const baseGeometry = new THREE.BoxGeometry(0.3, 0.02, 0.2);
-            const base = new THREE.Mesh(baseGeometry, standMaterial);
-            base.position.y = 0;
-            standGeometry.add(base);
-
-            const mountGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.02);
-            const mount = new THREE.Mesh(mountGeometry, standMaterial);
-            mount.position.y = 0.3;
-            standGeometry.add(mount);
-
-            standGeometry.position.set(0, 1.15, -0.4);
-
-            const monitorCanvas = document.createElement('canvas');
-            canvasRef.current = monitorCanvas;
-            monitorCanvas.width = 1024;
-            monitorCanvas.height = 576;
+            const stand = new THREE.Mesh(standGeometry, standMaterial);
             
-            const monitorTexture = new THREE.CanvasTexture(monitorCanvas);
-            textureRef.current = monitorTexture;
-
-            const displayMaterial = new THREE.MeshBasicMaterial({
-                map: monitorTexture,
-                side: THREE.FrontSide
+            const baseGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.02);
+            const base = new THREE.Mesh(baseGeometry, standMaterial);
+        
+            const displayGeometry = new THREE.PlaneGeometry(0.88, 0.48);
+            const displayMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x0066ff,
+                emissive: 0x0066ff,
+                emissiveIntensity: 0.5
             });
-
-            const displayGeometry = new THREE.PlaneGeometry(1.17, 0.67);
             const display = new THREE.Mesh(displayGeometry, displayMaterial);
             display.userData.clickable = true;
-
-            display.position.set(0, 1.4, -0.389);
-
-            const clickableArea = new THREE.Mesh(
-                new THREE.BoxGeometry(1.2, 0.7, 0.2),
-                new THREE.MeshBasicMaterial({ 
-                    transparent: true, 
-                    opacity: 0,
-                    side: THREE.DoubleSide 
-                })
-            );
-            clickableArea.position.set(0, 1.4, -0.4);
-            clickableArea.userData.clickable = true;
-            pcGroup.add(clickableArea);
         
+            // Assemble monitor
             screen.position.set(0, 1.4, -0.4);
+            stand.position.set(0, 1.15, -0.4);
+            base.position.set(0, 1, -0.4);
             display.position.set(0, 1.4, -0.389);
             
+            const monitorGlow = new THREE.PointLight(0x0066ff, 0.5, 1);
+            monitorGlow.position.set(0, 1.4, -0.3);
         
-            pcGroup.add(tower, screen, standGeometry, display);
+            pcGroup.add(tower, screen, stand, base, display, monitorGlow);
         
             const roomLights = [
                 { position: [4, 4, 4], color: 0xff0000 },
@@ -447,20 +382,15 @@ const Environment = () => {
         const mouse = new THREE.Vector2();
 
         const handleClick = (event: MouseEvent) => {
-            if (isInMonitorView) return; 
-
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(scene.children, true);
 
-            for (const intersect of intersects) {
-                if (intersect.object.userData.clickable) {
-                    console.log('Monitor clicked');
-                    toggleMonitorView();
-                    break;
-                }
+            const clickableObject = intersects.find(intersect => intersect.object.userData.clickable);
+            if (clickableObject) {
+                toggleMonitorView();
             }
         };
 
@@ -472,20 +402,43 @@ const Environment = () => {
 
         const toggleMonitorView = () => {
             isInMonitorView = !isInMonitorView;
-            setShowMonitorContent(isInMonitorView);
             
             const targetPosition = isInMonitorView ? monitorViewPosition : originalCameraPosition;
             const targetLookAt = isInMonitorView ? monitorViewTarget : originalControlsTarget;
-            const targetFOV = isInMonitorView ? 35 : 75; 
 
-            camera.position.copy(targetPosition);
-            controls.target.copy(targetLookAt);
-            camera.fov = targetFOV;
-            camera.zoom = isInMonitorView ? 1.8 : 1;
-            camera.updateProjectionMatrix();
+            new TWEEN.Tween(camera.position)
+                .to({
+                    x: targetPosition.x,
+                    y: targetPosition.y,
+                    z: targetPosition.z
+                }, 1000)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
+
+            new TWEEN.Tween(controls.target)
+                .to({
+                    x: targetLookAt.x,
+                    y: targetLookAt.y,
+                    z: targetLookAt.z
+                }, 1000)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .onUpdate(() => controls.update())
+                .start();
 
             if (isInMonitorView) {
-                controls.enabled = false;
+                controls.enabled = true;
+                controls.minDistance = 0.3;
+                controls.maxDistance = 0.3; 
+                controls.minPolarAngle = Math.PI / 2; 
+                controls.maxPolarAngle = Math.PI / 2;
+                controls.minAzimuthAngle = -Math.PI / 16; 
+                controls.maxAzimuthAngle = Math.PI / 16;
+                
+                new TWEEN.Tween(camera)
+                    .to({ zoom: 2.2 }, 1000)
+                    .easing(TWEEN.Easing.Cubic.InOut)
+                    .onUpdate(() => camera.updateProjectionMatrix())
+                    .start();
             } else {
                 controls.enabled = true;
                 controls.minDistance = 2;
@@ -494,6 +447,13 @@ const Environment = () => {
                 controls.maxPolarAngle = Math.PI / 2;
                 controls.minAzimuthAngle = -Infinity;
                 controls.maxAzimuthAngle = Infinity;
+                
+                // Reset zoom
+                new TWEEN.Tween(camera)
+                    .to({ zoom: 1 }, 1000)
+                    .easing(TWEEN.Easing.Cubic.InOut)
+                    .onUpdate(() => camera.updateProjectionMatrix())
+                    .start();
             }
             
             controls.update();
@@ -506,11 +466,6 @@ const Environment = () => {
         requestAnimationFrame(animate);
         TWEEN.update();
         
-        if (canvasRef.current && textureRef.current) {
-            updateCanvasContent();
-            textureRef.current.needsUpdate = true;
-        }
-
         const time = Date.now() * 0.001;
         const rgb = {
             r: Math.sin(time * 0.7) * 0.5 + 0.5,
@@ -543,18 +498,13 @@ const Environment = () => {
         };
     }, []);
 
-    return (
-        <>
-            <div ref={mountRef} style={{ 
-                width: '100vw', 
-                height: '100vh',
-                position: 'fixed',
-                top: 0,
-                left: 0
-            }} />
-            <MonitorWebsite isVisible={showMonitorContent} />
-        </>
-    );
+    return <div ref={mountRef} style={{ 
+        width: '100vw', 
+        height: '100vh',
+        position: 'fixed',
+        top: 0,
+        left: 0
+    }} />;
 };
 
 export default Environment;
